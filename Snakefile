@@ -38,12 +38,15 @@ def build_RG(wildcards):
     new_RG = '\\@RG\\\\t' + rg_id + '\\\\t' + pu + '\\\\t' + sm + '\\\\t' + pl
     return(new_RG)
 
+# reads in all of the bam.cram files to process
 SAMPLES, = glob_wildcards(join('cram/', '{sample}.bam.cram'))
 
+# final product
 rule all:
     input:
         expand('bam/{sample}.realigned.bam', sample=SAMPLES)
 
+# first step. splits each cram file by read group
 rule split_cram_by_rg:
     input:
         'cram/{sample}.bam.cram'
@@ -55,6 +58,7 @@ rule split_cram_by_rg:
         'echo {read_group_IDs}'
         'echo {output}'
 
+# second step. (re)aligns each lane bam file
 rule align:
     input:
         'temp/lane_bam/{sample}.ID{rg_id}.bam'
@@ -67,10 +71,11 @@ rule align:
         call = 'samtools collate -uOn 128 ' + str(input) + '/tmp/TMP-' + str(input) + ' | \
                 samtools fastq - | \
                 bwa mem -M -t 16 -B 4 -O 6 -E 1 -M -p -R ' + str(rg) + \
-                    '/data/mcgaugheyd/genomes/1000G_phase2_GRCh37/human_g1k_v37_decoy.fasta - | \
+                    '/data/genomes/1000G_phase2_GRCh37/human_g1k_v37_decoy.fasta - | \
                     samtools view -1 - > temp/ ' + sample + '.ID' + str(rg_id) + '.realigned.bam'
         subprocess.check_call(call, shell=True)
 
+# third step. merges the lane bam files back to one file (per sample, of course)
 rule merge_RG_bams_back_together:
     input:
         lane_bam_names
