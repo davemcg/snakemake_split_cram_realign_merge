@@ -62,8 +62,6 @@ rule align:
         'temp/realigned/{sample}.ID{rg_id}.realigned.bam'
     threads: 16
     run:
-        shell('module load bwa/0.7.12')
-        shell('module load samtools/1.4')
         import subprocess
         rg = build_RG
         call = 'samtools collate -uOn 128 ' + str(input) + '/tmp/TMP-' + str(input) + ' | \
@@ -79,7 +77,6 @@ rule merge_RG_bams_back_together:
     output:
         'bam/{sample}.realigned.bam'
     run:
-        shell('module load picard/2.1.1')
         import subprocess
         # picard merge uses I= for all input files
         build_picard_I = []
